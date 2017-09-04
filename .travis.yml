@@ -1,0 +1,79 @@
+sudo: required
+dist: trusty
+
+services:
+  - docker
+
+os:
+  - linux
+
+env:
+  global:
+    # Website configuration
+    - JEKYLL_FOLDER="jekyll"
+    - JEKYLL_FOLDER_ABS="$TRAVIS_BUILD_DIR/$JEKYLL_FOLDER"
+    - JEKYLL_SITE_FOLDER="_site"
+    - JEKYLL_SITE_FOLDER_ABS="$JEKYLL_FOLDER_ABS/$JEKYLL_SITE_FOLDER"
+    # Deploy configuration
+    - BOT_USER_NAME="loc2bot"
+    - UPSTREAM_TRIGGERING_BRANCH="master"
+    - DEPLOY_BRANCH="gh-pages"
+    - DEPLOY_REPOSITORY=$TRAVIS_REPO_SLUG
+    - DOCKER_BUILD_IMAGE="diegoferigo/jekyll"
+
+before_install:
+  # Pull the docker image
+  - docker pull $DOCKER_BUILD_IMAGE || travis_terminate 1
+  # Check if the generation is necessary
+  - >-
+    if [ -e $JEKYLL_FOLDER_ABS/.nojekyll ] ; then
+      export JEKYLL_GENERATE_LOCALLY=true
+      export DEPLOY_FOLDER=$JEKYLL_FOLDER/$JEKYLL_SITE_FOLDER
+    else
+      export JEKYLL_GENERATE_LOCALLY=false
+      export DEPLOY_FOLDER=$JEKYLL_FOLDER
+    fi
+
+script:
+  - cd $TRAVIS_BUILD_DIR
+  # Check the existence of the JEKYLL_SITE_FOLDER
+  - ls $JEKYLL_SITE_FOLDER_ABS >/dev/null
+  # Build the website
+  # (the image handles all permission issues may arise)
+  - >-
+    if [ $JEKYLL_GENERATE_LOCALLY = true ] ; then
+      docker run -it --rm \
+                 -v $JEKYLL_FOLDER_ABS:/srv/jekyll/www:rw \
+                 -p 4000:4000 \
+                 -e USERNAME=`whoami` \
+                 -e USER_UID=`id -u` \
+                 -e USER_GID=`id -g` \
+                 --name jekyll \
+                 $DOCKER_BUILD_IMAGE \
+                 build || travis_terminate 1
+    fi
+
+after_success:
+  # Deploy only commits hitting the upstream master
+  - >-
+    if [[ $TRAVIS_BRANCH = $UPSTREAM_TRIGGERING_BRANCH && \
+          $TRAVIS_PULL_REQUEST = false && \
+          -n $DEPLOY_TOKEN ]] ; then
+      # Add a new remote containing the bot login credentials
+      cd $TRAVIS_BUILD_DIR
+      git remote add origin-botlogin https://$BOT_USER_NAME:$DEPLOY_TOKEN@github.com/$DEPLOY_REPOSITORY.git
+      # Set the author and the committer
+      COMMIT_AUTHOR="$(git --no-pager show -s --format='%an <%ae>' $TRAVIS_COMMIT)"
+      export GIT_COMMITTER_NAME="LOC2Bot"
+      export GIT_COMMITTER_EMAIL="locomotion.control@gmail.com"
+      # Commit the jekyll/ or jekyll/_site folder
+      git commit -m "Automatic deployment Travis#${TRAVIS_BUILD_NUMBER}" \
+                 -m "Commit: https://github.com/$TRAVIS_REPO_SLUG/commit/$TRAVIS_COMMIT" \
+                 --author "$COMMIT_AUTHOR" \
+                 -- $DEPLOY_FOLDER
+      # Push the site folder to the upstream deployment branch (w/ force push support)
+      git subtree split --prefix $DEPLOY_FOLDER -b gh-pages-staging
+      git push --force origin-botlogin gh-pages-staging:$DEPLOY_BRANCH
+    else
+      echo "Nothing to deploy"
+    fi
