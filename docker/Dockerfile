@@ -1,4 +1,4 @@
- FROM ubuntu:rolling
+FROM ubuntu:rolling
 MAINTAINER Diego Ferigo <diego.ferigo@iit.it>
 
 # Useful tools
@@ -59,22 +59,15 @@ RUN apt-get update &&\
 EXPOSE 4000
 
 # Setup an entrypoint script
-COPY scripts/entrypoint.sh /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
+COPY entrypoint-user.sh /entrypoint-user.sh
 RUN chmod 755 /entrypoint.sh
+RUN chmod 755 /entrypoint-user.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
 ENV JEKYLL_DIR="/srv/jekyll"
 ENV WWW_DIR="/srv/jekyll/www"
 WORKDIR $JEKYLL_DIR
-
-ARG USERNAME=jekyll
-
-RUN useradd -m -s /bin/bash $USERNAME &&\
-    chown -R $USERNAME:$USERNAME $JEKYLL_DIR &&\
-    echo "$USERNAME ALL=NOPASSWD:ALL" >> /etc/sudoers
-USER $USERNAME
-
 ENV GEM_HOME /var/lib/gems
-RUN sudo chown -R $USERNAME:$USERNAME $GEM_HOME
 
 CMD ["jekyll", "--help"]

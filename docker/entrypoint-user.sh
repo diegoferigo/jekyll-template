@@ -20,6 +20,7 @@ function installdeps_bundler_local()
         cd "$WWW_DIR"
         setup_bundler_local
         bundler install --path $BUNDLER_FOLDER
+        setup_bundler_local
         cd - &>/dev/null
     else
         exit 1
@@ -58,14 +59,14 @@ case "$@" in
         esac
         ;;
     serve)
-        installdeps_bundler_local
         cd $WWW_DIR
+        installdeps_bundler_local
         bundle exec jekyll serve --host=$(hostname -i | awk '{print $1}')
         cd - &>/dev/null
         ;;
     build)
-        setup_bundler_local
         cd $WWW_DIR
+        installdeps_bundler_local
         bundle exec jekyll build --trace
         cd - &>/dev/null
         ;;
