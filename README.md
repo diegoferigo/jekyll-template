@@ -1,22 +1,52 @@
+[![Build Status](https://travis-ci.org/loc2/jekyll-template.svg?branch=master)](https://travis-ci.org/loc2/jekyll-template)
+
 # jekyll-template
 
-This repository provides a simple self-contained static website generated with [jekyll](https://github.com/jekyll/jekyll), and the toolchain to generate and serve it locally.
+This repository provides a simple self-contained static website generated with [jekyll](https://github.com/jekyll/jekyll). From the development point of view, the following features are supported:
 
-The only dependencies required to use this repository are `git` and `docker`.
+### `Development`: exploit the provided docker image:
 
-The `docker` image contains the minimum amount of dependencies, mainly ruby gems, needed to generate the default website provided by jekyll. After this, all the website configuration is demanded to `bundler`.
+* Creation of a default jekyll website
+* Building process of an existent jekyll website
+* Support to serve locally a website
+* Support of `jupyter` notebooks (latex, plots, code)
 
+### `Deployment`:
+
+* Automatic website generation after every commit exploiting Travis CI
+* Automatic website deployment after every commit exploiting Travis CI
+
+The [demo website](https://loc2.github.io/jekyll-template/) shows as example the jekyll-ified version of the [Bootstrap Blog Template](https://getbootstrap.com/docs/4.0/examples/blog/), with the deafult jekyll's articles, and a post written with a `jupyter` notebook.
+
+The required dependencies for the `Development` are `git` and `docker`.<br>
+The only required dependency for the `Deployment` is `git`.
+
+When the website is ready, the end users of the website only need to commit the markdown posts (or the jupyter notebooks) in the right location.
+
+#### Notes for `Development`:
+The `docker` image contains the minimum amount of dependencies, mainly ruby gems, needed to generate the default website provided by jekyll. After this, all the website configuration is demanded to `bundler`.<br>
 This means that the project's `Gemfile` should include all the dependencies needed to its execution (`jekyll` included). This potentially allows to avoid the usage of the provided `docker` image that might be useful in particular cases.
 
-## Build the docker image
+## Get the docker image
+
+The docker image used for handling this repository can be 1. downloaded from [dockerhub](https://hub.docker.com/r/diegoferigo/jekyll/) or 2. built locally:
+
+#### 1. Download the image from dockerhub
+
+```
+docker pull diegoferigo/jekyll
+docker tag diegoferigo/jekyll loc2/jekyll
+
+```
+
+#### 2. Build locally the image
 
 Clone this repository, start the docker daemon, and then execute:
 
 ```sh
+cd docker
 docker build --rm -t loc2/jekyll .
 ```
-
-Sooner or later this image will be uploaded to dockerhub.
 
 ## HowTo
 
@@ -24,7 +54,7 @@ The provided docker image can be used in the following way:
 
 ```sh
 docker run -it --rm \
-           -v $(pwd)/jekyll:/srv/jekyll/www \
+           -v $(pwd)/jekyll:/srv/jekyll/www:rw \
            -p 4000:4000 \
            --name jekyll \
            loc2/jekyll \
@@ -48,7 +78,7 @@ cd jekyll-template
 rm -r jekyll
 mkdir jekyll
 docker run -it --rm \
-           -v $(pwd)/jekyll:/srv/jekyll/www \
+           -v $(pwd)/jekyll:/srv/jekyll/www:rw \
            --name jekyll \
            loc2/jekyll \
            new
@@ -61,7 +91,7 @@ If you already have an existing website created with jekyll (even hosted in anot
 ```sh
 cd jekyll-template
 docker run -it --rm \
-           -v $(pwd)/jekyll:/srv/jekyll/www \
+           -v $(pwd)/jekyll:/srv/jekyll/www:rw \
            -p 4000:4000 \
            --name jekyll \
            loc2/jekyll \
